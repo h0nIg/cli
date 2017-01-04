@@ -32,3 +32,31 @@ func (e JobTimeoutError) Translate(translate func(string, ...interface{}) string
 		"JobGUID": e.JobGUID,
 	})
 }
+
+type CurrentUserError struct {
+	Message string
+}
+
+func (e CurrentUserError) Error() string {
+	return "Error retrieving current user:\n{{.Message}}"
+}
+
+func (e CurrentUserError) Translate(translate func(string, ...interface{}) string) string {
+	return translate(e.Error(), map[string]interface{}{
+		"Message": e.Message,
+	})
+}
+
+type OrgTargetError struct {
+	Message string
+}
+
+func (e OrgTargetError) Error() string {
+	return "Could not target org.\n{{.APIErr}}"
+}
+
+func (e OrgTargetError) Translate(translate func(string, ...interface{}) string) string {
+	return translate(e.Error(), map[string]interface{}{
+		"APIErr": e.Message,
+	})
+}

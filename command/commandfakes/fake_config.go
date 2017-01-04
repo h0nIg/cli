@@ -100,6 +100,12 @@ type FakeConfig struct {
 	setAccessTokenArgsForCall []struct {
 		token string
 	}
+	SetOrganizationInformationStub        func(guid string, name string)
+	setOrganizationInformationMutex       sync.RWMutex
+	setOrganizationInformationArgsForCall []struct {
+		guid string
+		name string
+	}
 	SetRefreshTokenStub        func(token string)
 	setRefreshTokenMutex       sync.RWMutex
 	setRefreshTokenArgsForCall []struct {
@@ -546,6 +552,31 @@ func (fake *FakeConfig) SetAccessTokenArgsForCall(i int) string {
 	return fake.setAccessTokenArgsForCall[i].token
 }
 
+func (fake *FakeConfig) SetOrganizationInformation(guid string, name string) {
+	fake.setOrganizationInformationMutex.Lock()
+	fake.setOrganizationInformationArgsForCall = append(fake.setOrganizationInformationArgsForCall, struct {
+		guid string
+		name string
+	}{guid, name})
+	fake.recordInvocation("SetOrganizationInformation", []interface{}{guid, name})
+	fake.setOrganizationInformationMutex.Unlock()
+	if fake.SetOrganizationInformationStub != nil {
+		fake.SetOrganizationInformationStub(guid, name)
+	}
+}
+
+func (fake *FakeConfig) SetOrganizationInformationCallCount() int {
+	fake.setOrganizationInformationMutex.RLock()
+	defer fake.setOrganizationInformationMutex.RUnlock()
+	return len(fake.setOrganizationInformationArgsForCall)
+}
+
+func (fake *FakeConfig) SetOrganizationInformationArgsForCall(i int) (string, string) {
+	fake.setOrganizationInformationMutex.RLock()
+	defer fake.setOrganizationInformationMutex.RUnlock()
+	return fake.setOrganizationInformationArgsForCall[i].guid, fake.setOrganizationInformationArgsForCall[i].name
+}
+
 func (fake *FakeConfig) SetRefreshToken(token string) {
 	fake.setRefreshTokenMutex.Lock()
 	fake.setRefreshTokenArgsForCall = append(fake.setRefreshTokenArgsForCall, struct {
@@ -836,6 +867,8 @@ func (fake *FakeConfig) Invocations() map[string][][]interface{} {
 	defer fake.overallPollingTimeoutMutex.RUnlock()
 	fake.setAccessTokenMutex.RLock()
 	defer fake.setAccessTokenMutex.RUnlock()
+	fake.setOrganizationInformationMutex.RLock()
+	defer fake.setOrganizationInformationMutex.RUnlock()
 	fake.setRefreshTokenMutex.RLock()
 	defer fake.setRefreshTokenMutex.RUnlock()
 	fake.setTargetInformationMutex.RLock()

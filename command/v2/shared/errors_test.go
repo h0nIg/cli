@@ -39,5 +39,9 @@ var _ = Describe("Translatable Errors", func() {
 		// Actor errors.
 		Entry("JobFailedError", JobFailedError{}),
 		Entry("JobTimeoutError", JobTimeoutError{}),
+
+		// Command errors.
+		Entry("CurrentUserError", CurrentUserError{}),
+		Entry("OrgTargetError", OrgTargetError{}),
 	)
 })

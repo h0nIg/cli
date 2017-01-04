@@ -19,6 +19,16 @@ type FakeTargetActor struct {
 		result2 v2action.Warnings
 		result3 error
 	}
+	GetOrganizationSpacesStub        func(orgGUID string) ([]v2action.Space, v2action.Warnings, error)
+	getOrganizationSpacesMutex       sync.RWMutex
+	getOrganizationSpacesArgsForCall []struct {
+		orgGUID string
+	}
+	getOrganizationSpacesReturns struct {
+		result1 []v2action.Space
+		result2 v2action.Warnings
+		result3 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -58,11 +68,48 @@ func (fake *FakeTargetActor) GetOrganizationByNameReturns(result1 v2action.Organ
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTargetActor) GetOrganizationSpaces(orgGUID string) ([]v2action.Space, v2action.Warnings, error) {
+	fake.getOrganizationSpacesMutex.Lock()
+	fake.getOrganizationSpacesArgsForCall = append(fake.getOrganizationSpacesArgsForCall, struct {
+		orgGUID string
+	}{orgGUID})
+	fake.recordInvocation("GetOrganizationSpaces", []interface{}{orgGUID})
+	fake.getOrganizationSpacesMutex.Unlock()
+	if fake.GetOrganizationSpacesStub != nil {
+		return fake.GetOrganizationSpacesStub(orgGUID)
+	} else {
+		return fake.getOrganizationSpacesReturns.result1, fake.getOrganizationSpacesReturns.result2, fake.getOrganizationSpacesReturns.result3
+	}
+}
+
+func (fake *FakeTargetActor) GetOrganizationSpacesCallCount() int {
+	fake.getOrganizationSpacesMutex.RLock()
+	defer fake.getOrganizationSpacesMutex.RUnlock()
+	return len(fake.getOrganizationSpacesArgsForCall)
+}
+
+func (fake *FakeTargetActor) GetOrganizationSpacesArgsForCall(i int) string {
+	fake.getOrganizationSpacesMutex.RLock()
+	defer fake.getOrganizationSpacesMutex.RUnlock()
+	return fake.getOrganizationSpacesArgsForCall[i].orgGUID
+}
+
+func (fake *FakeTargetActor) GetOrganizationSpacesReturns(result1 []v2action.Space, result2 v2action.Warnings, result3 error) {
+	fake.GetOrganizationSpacesStub = nil
+	fake.getOrganizationSpacesReturns = struct {
+		result1 []v2action.Space
+		result2 v2action.Warnings
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeTargetActor) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getOrganizationByNameMutex.RLock()
 	defer fake.getOrganizationByNameMutex.RUnlock()
+	fake.getOrganizationSpacesMutex.RLock()
+	defer fake.getOrganizationSpacesMutex.RUnlock()
 	return fake.invocations
 }
 

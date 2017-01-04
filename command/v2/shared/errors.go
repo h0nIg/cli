@@ -60,3 +60,17 @@ func (e OrgTargetError) Translate(translate func(string, ...interface{}) string)
 		"APIErr": e.Message,
 	})
 }
+
+type GetOrgSpacesError struct {
+	Message string
+}
+
+func (e GetOrgSpacesError) Error() string {
+	return "Error getting spaces in organization.\n{{.APIErr}}"
+}
+
+func (e GetOrgSpacesError) Translate(translate func(string, ...interface{}) string) string {
+	return translate(e.Error(), map[string]interface{}{
+		"APIErr": e.Message,
+	})
+}

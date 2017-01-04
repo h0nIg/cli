@@ -12,6 +12,7 @@ import (
 //go:generate counterfeiter . TargetActor
 type TargetActor interface {
 	GetOrganizationByName(orgName string) (v2action.Organization, v2action.Warnings, error)
+	GetOrganizationSpaces(orgGUID string) ([]v2action.Space, v2action.Warnings, error)
 }
 
 type TargetCommand struct {
@@ -45,6 +46,7 @@ func (cmd *TargetCommand) Execute(args []string) error {
 		}
 	}
 
+	// setting organization
 	if cmd.Organization != "" {
 		var (
 			org      v2action.Organization
@@ -60,14 +62,22 @@ func (cmd *TargetCommand) Execute(args []string) error {
 			}
 		}
 
-		fmt.Println(org.GUID)
 		cmd.Config.SetOrganizationInformation(org.GUID, cmd.Organization)
 
-		fmt.Println(cmd.Config.TargetedOrganization())
-		// output
-	}
+		spaces, getSpacesWarnings, err := cmd.Actor.GetOrganizationSpaces(org.GUID)
+		cmd.UI.DisplayWarnings(getSpacesWarnings)
 
-	// set space here
+		if err != nil {
+			return shared.GetOrgSpacesError{
+				Message: err.Error(),
+			}
+		}
+
+		if len(spaces) == 1 {
+			space := spaces[0]
+			cmd.Config.SetSpaceInformation(space.GUID, space.Name, space.AllowSSH)
+		}
+	}
 
 	apiEndpoint := cmd.UI.TranslateText("{{.APIEndpoint}} (API version: {{.APIVersionString}})", map[string]interface{}{
 		"APIEndpoint":      cmd.Config.Target(),

@@ -111,7 +111,7 @@ var _ = FDescribe("target Command", func() {
 					Expect(testUI.Out).To(Say("API endpoint:   some-api-target \\(API version: 1.2.3\\)"))
 					Expect(testUI.Out).To(Say("User:           some-user"))
 					Expect(testUI.Out).To(Say("Org:            some-org"))
-					Expect(testUI.Out).To(Say("No space targeted, use 'faceman target -s SPACE'"))
+					Expect(testUI.Out).To(Say("Space:          No space targeted, use 'faceman target -s SPACE'"))
 				})
 			})
 
@@ -183,142 +183,115 @@ var _ = FDescribe("target Command", func() {
 							"warning-2",
 						},
 						nil)
+					fakeConfig.TargetedOrganizationReturns(configv3.Organization{
+						GUID: "some-org-guid",
+						Name: "some-org",
+					})
 				})
 
-				It("displays all warnings, sets the org and shows the new target", func() {
-					Expect(executeErr).ToNot(HaveOccurred())
+				Context("when GetOrganizationSpaces returns an error", func() {
+					var err error
+					BeforeEach(func() {
+						err = errors.New("get-org-spaces-error")
+						fakeActor.GetOrganizationSpacesReturns(
+							[]v2action.Space{},
+							v2action.Warnings{
+								"warning-3",
+							}, err)
+					})
 
-					Expect(testUI.Err).To(Say("warning-1"))
-					Expect(testUI.Err).To(Say("warning-2"))
+					It("displays all warnings and returns a get org spaces error", func() {
+						Expect(fakeActor.GetOrganizationSpacesCallCount()).To(Equal(1))
+						orgGUID := fakeActor.GetOrganizationSpacesArgsForCall(0)
+						Expect(orgGUID).To(Equal("some-org-guid"))
 
-					Expect(fakeConfig.SetOrganizationInformationCallCount()).To(Equal(1))
-					orgGUID, orgName := fakeConfig.SetOrganizationInformationArgsForCall(0)
-					Expect(orgGUID).To(Equal("some-org-guid"))
-					Expect(orgName).To(Equal("some-org"))
+						Expect(testUI.Err).To(Say("warning-1"))
+						Expect(testUI.Err).To(Say("warning-2"))
+						Expect(testUI.Err).To(Say("warning-3"))
 
-					Expect(testUI.Out).To(Say("API endpoint:   some-api-target \\(API version: 1.2.3\\)"))
-					Expect(testUI.Out).To(Say("User:           some-user"))
-					Expect(testUI.Out).To(Say("Org:            some-org"))
-					Expect(testUI.Out).To(Say("Space:          test"))
+						expectedError := shared.GetOrgSpacesError{
+							Message: "get-org-spaces-error",
+						}
+						Expect(executeErr).To(MatchError(expectedError))
+					})
+				})
+
+				Context("when there are 0 spaces in the org", func() {
+					It("displays all warnings and sets the org in the config", func() {
+						Expect(executeErr).ToNot(HaveOccurred())
+
+						Expect(testUI.Err).To(Say("warning-1"))
+						Expect(testUI.Err).To(Say("warning-2"))
+
+						Expect(fakeConfig.SetOrganizationInformationCallCount()).To(Equal(1))
+						orgGUID, orgName := fakeConfig.SetOrganizationInformationArgsForCall(0)
+						Expect(orgGUID).To(Equal("some-org-guid"))
+						Expect(orgName).To(Equal("some-org"))
+
+						Expect(fakeConfig.SetSpaceInformationCallCount()).To(Equal(0))
+					})
+				})
+
+				Context("when there is only 1 space in the org", func() {
+					BeforeEach(func() {
+						fakeActor.GetOrganizationSpacesReturns([]v2action.Space{{
+							GUID:     "some-space-guid",
+							Name:     "some-space",
+							AllowSSH: true,
+						}}, v2action.Warnings{
+							"warning-3",
+						}, nil)
+					})
+
+					It("displays all warnings and sets the org and space in the config", func() {
+						Expect(executeErr).ToNot(HaveOccurred())
+
+						Expect(testUI.Err).To(Say("warning-1"))
+						Expect(testUI.Err).To(Say("warning-2"))
+						Expect(testUI.Err).To(Say("warning-3"))
+
+						Expect(fakeConfig.SetOrganizationInformationCallCount()).To(Equal(1))
+						orgGUID, orgName := fakeConfig.SetOrganizationInformationArgsForCall(0)
+						Expect(orgGUID).To(Equal("some-org-guid"))
+						Expect(orgName).To(Equal("some-org"))
+
+						Expect(fakeConfig.SetSpaceInformationCallCount()).To(Equal(1))
+						spaceGUID, spaceName, spaceAllowSSH := fakeConfig.SetSpaceInformationArgsForCall(0)
+						Expect(spaceGUID).To(Equal("some-space-guid"))
+						Expect(spaceName).To(Equal("some-space"))
+						Expect(spaceAllowSSH).To(Equal(true))
+					})
+				})
+
+				Context("when there are more than 1 spaces in the org", func() {
+					BeforeEach(func() {
+						fakeActor.GetOrganizationSpacesReturns([]v2action.Space{{
+							GUID:     "some-space-guid",
+							Name:     "some-space",
+							AllowSSH: true,
+						}, {
+							GUID:     "another-space-space-guid",
+							Name:     "another-space",
+							AllowSSH: true,
+						}}, v2action.Warnings{
+							"warning-3",
+						}, nil)
+					})
+					It("displays all warnings, sets the org and shows the new target", func() {
+						Expect(executeErr).ToNot(HaveOccurred())
+
+						Expect(testUI.Err).To(Say("warning-1"))
+						Expect(testUI.Err).To(Say("warning-2"))
+
+						Expect(fakeConfig.SetOrganizationInformationCallCount()).To(Equal(1))
+						orgGUID, orgName := fakeConfig.SetOrganizationInformationArgsForCall(0)
+						Expect(orgGUID).To(Equal("some-org-guid"))
+						Expect(orgName).To(Equal("some-org"))
+
+						Expect(fakeConfig.SetSpaceInformationCallCount()).To(Equal(0))
+					})
 				})
 			})
 		})
 	})
-
-	// When -o
-	//
-	//
-	//
-	//
-	//
-	//
-	//
-	//
-	//
-	//
-	//
-
-	// 		Context("when the delete actor org returns an error", func() {
-	// 			Context("when the organization does not exist", func() {
-	// 				BeforeEach(func() {
-	// 					fakeActor.DeleteOrganizationReturns(
-	// 						v2action.Warnings{"warning-1", "warning-2"},
-	// 						v2action.OrganizationNotFoundError{
-	// 							Name: "some-org",
-	// 						},
-	// 					)
-	// 				})
-
-	// 				It("returns an OrganizationNotFoundError and displays all warnings", func() {
-	// 					Expect(executeErr).NotTo(HaveOccurred())
-
-	// 					Expect(testUI.Out).To(Say("Deleting org some-org as some-user..."))
-
-	// 					Expect(fakeActor.DeleteOrganizationCallCount()).To(Equal(1))
-	// 					orgName := fakeActor.DeleteOrganizationArgsForCall(0)
-	// 					Expect(orgName).To(Equal("some-org"))
-
-	// 					Expect(testUI.Err).To(Say("warning-1"))
-	// 					Expect(testUI.Err).To(Say("warning-2"))
-
-	// 					Expect(testUI.Out).To(Say("Org some-org does not exist."))
-	// 					Expect(testUI.Out).To(Say("OK"))
-	// 				})
-	// 			})
-	// 		})
-	// 	})
-
-	// 	// Testing the prompt.
-	// 	Context("when the '-f' flag is not provided", func() {
-	// 		Context("when the user chooses the default", func() {
-	// 			BeforeEach(func() {
-	// 				input.Write([]byte("\n"))
-	// 			})
-
-	// 			It("does not delete the org", func() {
-	// 				Expect(executeErr).ToNot(HaveOccurred())
-
-	// 				Expect(testUI.Out).To(Say("Delete cancelled"))
-
-	// 				Expect(fakeActor.DeleteOrganizationCallCount()).To(Equal(0))
-	// 			})
-	// 		})
-
-	// 		Context("when the user inputs no", func() {
-	// 			BeforeEach(func() {
-	// 				input.Write([]byte("n\n"))
-	// 			})
-
-	// 			It("does not delete the org", func() {
-	// 				Expect(executeErr).ToNot(HaveOccurred())
-
-	// 				Expect(testUI.Out).To(Say("Delete cancelled"))
-
-	// 				Expect(fakeActor.DeleteOrganizationCallCount()).To(Equal(0))
-	// 			})
-	// 		})
-
-	// 		Context("when the user inputs yes", func() {
-	// 			BeforeEach(func() {
-	// 				input.Write([]byte("y\n"))
-	// 			})
-
-	// 			It("deletes the org", func() {
-	// 				Expect(executeErr).ToNot(HaveOccurred())
-
-	// 				Expect(testUI.Out).To(Say("Really delete the org some-org and everything associated with it\\?>> \\[yN\\]:"))
-	// 				Expect(testUI.Out).To(Say("Deleting org some-org as some-user..."))
-
-	// 				Expect(fakeActor.DeleteOrganizationCallCount()).To(Equal(1))
-	// 				orgName := fakeActor.DeleteOrganizationArgsForCall(0)
-	// 				Expect(orgName).To(Equal("some-org"))
-
-	// 				Expect(testUI.Out).To(Say("OK"))
-	// 			})
-	// 		})
-
-	// 		Context("when the user input is invalid", func() {
-	// 			BeforeEach(func() {
-	// 				input.Write([]byte("e\n\n"))
-	// 			})
-
-	// 			It("asks the user again", func() {
-	// 				Expect(executeErr).NotTo(HaveOccurred())
-
-	// 				Expect(testUI.Out).To(Say("Really delete the org some-org and everything associated with it\\?>> \\[yN\\]:"))
-	// 				Expect(testUI.Out).To(Say("invalid input \\(not y, n, yes, or no\\)"))
-	// 				Expect(testUI.Out).To(Say("Really delete the org some-org and everything associated with it\\?>> \\[yN\\]:"))
-
-	// 				Expect(fakeActor.DeleteOrganizationCallCount()).To(Equal(0))
-	// 			})
-	// 		})
-
-	// 		Context("when displaying the prompt returns an error", func() {
-	// 			// if nothing is written to input, display bool prompt returns EOF
-	// 			It("returns the error", func() {
-	// 				Expect(executeErr).To(MatchError("EOF"))
-	// 			})
-	// 		})
-	// 	})
-	// })
 })

@@ -106,6 +106,13 @@ type FakeConfig struct {
 		guid string
 		name string
 	}
+	SetSpaceInformationStub        func(guid string, name string, allowSSH bool)
+	setSpaceInformationMutex       sync.RWMutex
+	setSpaceInformationArgsForCall []struct {
+		guid     string
+		name     string
+		allowSSH bool
+	}
 	SetRefreshTokenStub        func(token string)
 	setRefreshTokenMutex       sync.RWMutex
 	setRefreshTokenArgsForCall []struct {
@@ -577,6 +584,32 @@ func (fake *FakeConfig) SetOrganizationInformationArgsForCall(i int) (string, st
 	return fake.setOrganizationInformationArgsForCall[i].guid, fake.setOrganizationInformationArgsForCall[i].name
 }
 
+func (fake *FakeConfig) SetSpaceInformation(guid string, name string, allowSSH bool) {
+	fake.setSpaceInformationMutex.Lock()
+	fake.setSpaceInformationArgsForCall = append(fake.setSpaceInformationArgsForCall, struct {
+		guid     string
+		name     string
+		allowSSH bool
+	}{guid, name, allowSSH})
+	fake.recordInvocation("SetSpaceInformation", []interface{}{guid, name, allowSSH})
+	fake.setSpaceInformationMutex.Unlock()
+	if fake.SetSpaceInformationStub != nil {
+		fake.SetSpaceInformationStub(guid, name, allowSSH)
+	}
+}
+
+func (fake *FakeConfig) SetSpaceInformationCallCount() int {
+	fake.setSpaceInformationMutex.RLock()
+	defer fake.setSpaceInformationMutex.RUnlock()
+	return len(fake.setSpaceInformationArgsForCall)
+}
+
+func (fake *FakeConfig) SetSpaceInformationArgsForCall(i int) (string, string, bool) {
+	fake.setSpaceInformationMutex.RLock()
+	defer fake.setSpaceInformationMutex.RUnlock()
+	return fake.setSpaceInformationArgsForCall[i].guid, fake.setSpaceInformationArgsForCall[i].name, fake.setSpaceInformationArgsForCall[i].allowSSH
+}
+
 func (fake *FakeConfig) SetRefreshToken(token string) {
 	fake.setRefreshTokenMutex.Lock()
 	fake.setRefreshTokenArgsForCall = append(fake.setRefreshTokenArgsForCall, struct {
@@ -869,6 +902,8 @@ func (fake *FakeConfig) Invocations() map[string][][]interface{} {
 	defer fake.setAccessTokenMutex.RUnlock()
 	fake.setOrganizationInformationMutex.RLock()
 	defer fake.setOrganizationInformationMutex.RUnlock()
+	fake.setSpaceInformationMutex.RLock()
+	defer fake.setSpaceInformationMutex.RUnlock()
 	fake.setRefreshTokenMutex.RLock()
 	defer fake.setRefreshTokenMutex.RUnlock()
 	fake.setTargetInformationMutex.RLock()

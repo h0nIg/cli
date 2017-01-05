@@ -47,64 +47,96 @@ func (cmd *TargetCommand) Execute(args []string) error {
 		}
 	}
 
-	// setting organization
-	if cmd.Organization != "" {
-		var (
-			org      v2action.Organization
-			warnings v2action.Warnings
-		)
-
-		org, warnings, err = cmd.Actor.GetOrganizationByName(cmd.Organization)
-		cmd.UI.DisplayWarnings(warnings)
-
-		if err != nil {
-			return shared.OrgTargetError{
-				Message: err.Error(),
-			}
-		}
-
-		cmd.Config.SetOrganizationInformation(org.GUID, cmd.Organization)
-
-		// auto-target the space if there is only one space in the org
-		// and no space arg was provided
-		if cmd.Space == "" {
-			spaces, warnings, err := cmd.Actor.GetOrganizationSpaces(org.GUID)
-			cmd.UI.DisplayWarnings(warnings)
-
-			if err != nil {
-				return shared.GetOrgSpacesError{
-					Message: err.Error(),
-				}
-			}
-
-			if len(spaces) == 1 {
-				space := spaces[0]
-				cmd.Config.SetSpaceInformation(space.GUID, space.Name, space.AllowSSH)
-			}
-		}
+	err = cmd.setOrg()
+	if err != nil {
+		return err
 	}
 
-	emptyOrg := configv3.Organization{}
-
-	if cmd.Space != "" {
-		if cmd.Config.TargetedOrganization() == emptyOrg {
-			return shared.NoOrgTargetedError{}
-		}
-
-		space, warnings, err := cmd.Actor.GetSpaceByName(cmd.Config.TargetedOrganization().GUID, cmd.Space)
-		cmd.UI.DisplayWarnings(warnings)
-
-		if err != nil {
-			return shared.SpaceTargetError{
-				Message:   err.Error(),
-				SpaceName: cmd.Space,
-			}
-		}
-
-		cmd.Config.SetSpaceInformation(space.GUID, space.Name, space.AllowSSH)
+	err = cmd.setSpace()
+	if err != nil {
+		return err
 	}
 
 	return cmd.displayTargetTable(user)
+}
+
+// Setting space
+func (cmd *TargetCommand) setSpace() error {
+	if cmd.Space == "" {
+		return nil
+	}
+	emptyOrg := configv3.Organization{}
+	if cmd.Config.TargetedOrganization() == emptyOrg {
+		return shared.NoOrgTargetedError{}
+	}
+
+	space, warnings, err := cmd.Actor.GetSpaceByName(cmd.Config.TargetedOrganization().GUID, cmd.Space)
+	cmd.UI.DisplayWarnings(warnings)
+
+	if err != nil {
+		return shared.SpaceTargetError{
+			Message:   err.Error(),
+			SpaceName: cmd.Space,
+		}
+	}
+
+	cmd.Config.SetSpaceInformation(space.GUID, space.Name, space.AllowSSH)
+	return nil
+}
+
+// Setting organization
+func (cmd *TargetCommand) setOrg() error {
+	if cmd.Organization == "" {
+		return nil
+	}
+
+	var (
+		org      v2action.Organization
+		warnings v2action.Warnings
+	)
+
+	org, warnings, err := cmd.Actor.GetOrganizationByName(cmd.Organization)
+	cmd.UI.DisplayWarnings(warnings)
+
+	if err != nil {
+		return shared.OrgTargetError{
+			Message: err.Error(),
+		}
+	}
+
+	cmd.Config.SetOrganizationInformation(org.GUID, cmd.Organization)
+
+	err = cmd.autoTargetSpace(org.GUID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Auto-target the space if there is only one space in the org
+// and no space arg was provided.
+func (cmd *TargetCommand) autoTargetSpace(orgGUID string) error {
+	// if the user provided a space as an argument, we don't want to autoTarget
+	if cmd.Space != "" {
+		return nil
+	}
+
+	spaces, warnings, err := cmd.Actor.GetOrganizationSpaces(orgGUID)
+	cmd.UI.DisplayWarnings(warnings)
+
+	if err != nil {
+		return shared.GetOrgSpacesError{
+			Message: err.Error(),
+		}
+	}
+
+	if len(spaces) == 1 {
+		space := spaces[0]
+		cmd.Config.SetSpaceInformation(space.GUID, space.Name, space.AllowSSH)
+	}
+
+	return nil
 }
 
 func (cmd *TargetCommand) displayTargetTable(user configv3.User) error {

@@ -31,6 +31,12 @@ func (cmd *TargetCommand) Setup(config command.Config, ui command.UI) error {
 	cmd.Config = config
 	cmd.UI = ui
 
+	ccClient, uaaClient, err := shared.NewClients(config, ui)
+	if err != nil {
+		return err
+	}
+	cmd.Actor = v2action.NewActor(ccClient, uaaClient, config)
+
 	return nil
 }
 

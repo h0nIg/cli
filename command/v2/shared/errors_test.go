@@ -43,6 +43,8 @@ var _ = Describe("Translatable Errors", func() {
 		// Command errors.
 		Entry("CurrentUserError", CurrentUserError{}),
 		Entry("OrgTargetError", OrgTargetError{}),
+		Entry("NoOrgTargetedError", NoOrgTargetedError{}),
 		Entry("GetOrgSpacesError", GetOrgSpacesError{}),
+		Entry("SpaceTargetError", SpaceTargetError{}),
 	)
 })

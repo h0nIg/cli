@@ -13,6 +13,7 @@ import (
 type TargetActor interface {
 	GetOrganizationByName(orgName string) (v2action.Organization, v2action.Warnings, error)
 	GetOrganizationSpaces(orgGUID string) ([]v2action.Space, v2action.Warnings, error)
+	GetSpaceByName(orgGUID string, spaceName string) (v2action.Space, v2action.Warnings, error)
 }
 
 type TargetCommand struct {
@@ -64,19 +65,42 @@ func (cmd *TargetCommand) Execute(args []string) error {
 
 		cmd.Config.SetOrganizationInformation(org.GUID, cmd.Organization)
 
-		spaces, getSpacesWarnings, err := cmd.Actor.GetOrganizationSpaces(org.GUID)
-		cmd.UI.DisplayWarnings(getSpacesWarnings)
+		// auto-target the space if there is only one space in the org
+		// and no space arg was provided
+		if cmd.Space == "" {
+			spaces, warnings, err := cmd.Actor.GetOrganizationSpaces(org.GUID)
+			cmd.UI.DisplayWarnings(warnings)
+
+			if err != nil {
+				return shared.GetOrgSpacesError{
+					Message: err.Error(),
+				}
+			}
+
+			if len(spaces) == 1 {
+				space := spaces[0]
+				cmd.Config.SetSpaceInformation(space.GUID, space.Name, space.AllowSSH)
+			}
+		}
+	}
+
+	emptyOrg := configv3.Organization{}
+	if cmd.Space != "" {
+		if cmd.Config.TargetedOrganization() == emptyOrg {
+			return shared.NoOrgTargetedError{}
+		}
+
+		space, warnings, err := cmd.Actor.GetSpaceByName(cmd.Config.TargetedOrganization().GUID, cmd.Space)
+		cmd.UI.DisplayWarnings(warnings)
 
 		if err != nil {
-			return shared.GetOrgSpacesError{
-				Message: err.Error(),
+			return shared.SpaceTargetError{
+				Message:   err.Error(),
+				SpaceName: cmd.Space,
 			}
 		}
 
-		if len(spaces) == 1 {
-			space := spaces[0]
-			cmd.Config.SetSpaceInformation(space.GUID, space.Name, space.AllowSSH)
-		}
+		cmd.Config.SetSpaceInformation(space.GUID, space.Name, space.AllowSSH)
 	}
 
 	apiEndpoint := cmd.UI.TranslateText("{{.APIEndpoint}} (API version: {{.APIVersionString}})", map[string]interface{}{
@@ -89,7 +113,6 @@ func (cmd *TargetCommand) Execute(args []string) error {
 		{cmd.UI.TranslateText("User:"), user.Name},
 	}
 
-	emptyOrg := configv3.Organization{}
 	if cmd.Config.TargetedOrganization() == emptyOrg {
 		cmd.UI.DisplayTable("", table, 3)
 		command := fmt.Sprintf("%s target -o ORG -s SPACE", cmd.Config.BinaryName())

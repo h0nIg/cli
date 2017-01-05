@@ -61,6 +61,18 @@ func (e OrgTargetError) Translate(translate func(string, ...interface{}) string)
 	})
 }
 
+type NoOrgTargetedError struct {
+	Message string
+}
+
+func (e NoOrgTargetedError) Error() string {
+	return "An org must be targeted before targeting a space"
+}
+
+func (e NoOrgTargetedError) Translate(translate func(string, ...interface{}) string) string {
+	return translate(e.Error(), map[string]interface{}{})
+}
+
 type GetOrgSpacesError struct {
 	Message string
 }
@@ -73,4 +85,20 @@ func (e GetOrgSpacesError) Translate(translate func(string, ...interface{}) stri
 	return translate(e.Error(), map[string]interface{}{
 		"APIErr": e.Message,
 	})
+}
+
+func (e SpaceTargetError) Error() string {
+	return "Unable to access space {{.SpaceName}}.\n{{.APIErr}}"
+}
+
+func (e SpaceTargetError) Translate(translate func(string, ...interface{}) string) string {
+	return translate(e.Error(), map[string]interface{}{
+		"APIErr":    e.Message,
+		"SpaceName": e.SpaceName,
+	})
+}
+
+type SpaceTargetError struct {
+	Message   string
+	SpaceName string
 }

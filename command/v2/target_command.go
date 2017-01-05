@@ -85,6 +85,7 @@ func (cmd *TargetCommand) Execute(args []string) error {
 	}
 
 	emptyOrg := configv3.Organization{}
+
 	if cmd.Space != "" {
 		if cmd.Config.TargetedOrganization() == emptyOrg {
 			return shared.NoOrgTargetedError{}
@@ -103,6 +104,10 @@ func (cmd *TargetCommand) Execute(args []string) error {
 		cmd.Config.SetSpaceInformation(space.GUID, space.Name, space.AllowSSH)
 	}
 
+	return cmd.displayTargetTable(user)
+}
+
+func (cmd *TargetCommand) displayTargetTable(user configv3.User) error {
 	apiEndpoint := cmd.UI.TranslateText("{{.APIEndpoint}} (API version: {{.APIVersionString}})", map[string]interface{}{
 		"APIEndpoint":      cmd.Config.Target(),
 		"APIVersionString": cmd.Config.APIVersion(),
@@ -113,6 +118,7 @@ func (cmd *TargetCommand) Execute(args []string) error {
 		{cmd.UI.TranslateText("User:"), user.Name},
 	}
 
+	emptyOrg := configv3.Organization{}
 	if cmd.Config.TargetedOrganization() == emptyOrg {
 		cmd.UI.DisplayTable("", table, 3)
 		command := fmt.Sprintf("%s target -o ORG -s SPACE", cmd.Config.BinaryName())

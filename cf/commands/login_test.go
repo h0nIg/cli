@@ -445,7 +445,7 @@ var _ = Describe("Login Command", func() {
 				})
 
 				It("does not prompt the user for the passcode type prompts", func() {
-					Flags = []string{"--sso", "--sso-passcode", "the-one-time-code", "-a", "api.example.com"}
+					Flags = []string{"--sso", "the-one-time-code", "-a", "api.example.com"}
 
 					testcmd.RunCLICommand("login", Flags, nil, updateCommandDependency, false, ui)
 

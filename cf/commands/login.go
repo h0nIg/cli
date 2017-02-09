@@ -40,7 +40,7 @@ func (cmd *Login) MetaData() commandregistry.CommandMetadata {
 	fs["p"] = &flags.StringFlag{ShortName: "p", Usage: T("Password")}
 	fs["o"] = &flags.StringFlag{ShortName: "o", Usage: T("Org")}
 	fs["s"] = &flags.StringFlag{ShortName: "s", Usage: T("Space")}
-	fs["sso"] = &flags.BoolFlag{Name: "sso", Usage: T("Use a one-time password to login")}
+	fs["sso"] = &flags.StringFlag{Name: "sso", Usage: T("Use a one-time password to login")}
 	fs["sso-passcode"] = &flags.StringFlag{Name: "sso-passcode", Usage: T("One-time password")}
 	fs["skip-ssl-validation"] = &flags.BoolFlag{Name: "skip-ssl-validation", Usage: T("Skip verification of the API endpoint. Not recommended!")}
 
@@ -108,7 +108,7 @@ func (cmd *Login) Execute(c flags.FlagContext) error {
 	//   EITHER   username and password
 	//   OR       a one-time passcode
 
-	if c.Bool("sso") {
+	if c.IsSet("sso") {
 		err = cmd.authenticateSSO(c)
 		if err != nil {
 			return err
@@ -153,7 +153,7 @@ func (cmd Login) decideEndpoint(c flags.FlagContext) (string, bool) {
 }
 
 func (cmd Login) authenticateSSO(c flags.FlagContext) error {
-	passcodeFlagValue := c.String("sso-passcode")
+	passcodeFlagValue := c.String("sso")
 
 	prompts, err := cmd.authenticator.GetLoginPromptsAndSaveUAAServerURL()
 	if err != nil {
